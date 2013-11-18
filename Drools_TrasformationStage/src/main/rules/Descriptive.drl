@@ -1,0 +1,103 @@
+package rec.reificator
+
+global java.lang.StringBuilder strbuild;
+
+declare FluentDef
+	name: String
+end
+
+declare EventDef
+	name: String
+end
+
+declare InitiallyDef
+	name : String
+end
+
+declare Affect
+	name: String
+	event: String
+	fluent: String
+	condition: String
+end
+
+ 
+rule "Include FluentDef (Singleton)"
+salience 5
+no-loop
+when
+	FluentDef( $s: name )
+//	not Fluent( name == $s )
+then
+	strbuild.append("declare" +  $s + "extends Fluent\n end\n");
+	
+    String a = $s.toLowerCase();
+    char b = a.charAt(0);
+    String c = b + $s.substring(1);
+
+	strbuild.append("query " + c + "( " + $s + " $f )\n\t$f := " + $s + "()\nend\n\n");
+	
+	System.out.println("FluentDef: " + $s);
+end
+
+
+rule "Include EventDef (Singleton)"
+salience 4
+no-loop
+when
+	EventDef( $s: name )
+//	not Event( name == $s )
+then
+	strbuild.append(String.format("declare %s extends Event\n\t@role(event)\nend\n\n", $s));
+	
+	System.out.println(String.format("EventDef: %s", $s));
+end
+
+rule "Include InitiallyDef (Singleton)"
+salience 3
+no-loop
+when
+	InitiallyDef( $s: name )
+	not InitiallyDef( name == $s )
+then
+	strbuild.append("rule \"Initially " + $s + "\"\n");
+	strbuild.append("salience 1\n");
+	strbuild.append("when\n\t$i: Initially()");
+	strbuild.append("then\n");
+
+	//caso specifico torcia elettrica
+	strbuild.append("\tMVI m1, m2, m3;\n\tFluent f1, f2, f3;\n");
+	strbuild.append("\tinsert(f1 = new LightsOn());\n");
+	strbuild.append("\tinsert(f2 = new PwrAvail());\n");
+	strbuild.append("\tinsert(f3 = new SwitchOn());\n");
+	strbuild.append("\tinsert(m1 = new MVI(f1, (double) 0.0, (long) 0, (long) Long.MAX_VALUE));\n");
+	strbuild.append("\tinsert(m2 = new MVI(f2, 0.0, (long) 0, (long) Long.MAX_VALUE));\n");
+	strbuild.append("\tinsert(m3 = new MVI(f3, 0.0, (long) 0, (long) Long.MAX_VALUE));\n\n");
+	
+	System.out.println(String.format("Initially: %s", $s));
+end
+
+rule "Include Affect (Singleton)"
+salience 2
+when
+	Affect( $s: name, $e: event, $f: fluent, $cond: condition )
+//	not Affect( name == $s, event == $e, fluent == $f )
+then
+	strbuild.append("rule \"" + $e + "---> Sample(" + $f + ")\"\n");
+	strbuild.append("when\n\t$e: " + $e + "( $s: start, $v: value)\n");
+	
+	String A = $f;
+//    String a = A.toLowerCase(); 
+//    char b = a.charAt(0);
+//    String c = b + A.substring(1);
+
+	strbuild.append("\t$f : " + A + "()\n");
+	
+	if($cond!=null)
+		strbuild.append("\n" + $cond + "\n\n");
+	
+	strbuild.append("then\n");
+	strbuild.append("\tinsert( new Sample($e, $f, $v, $s)\nend\n\n");
+	
+	System.out.println("Affect: \"" + $e + " ---> Sample(" + $f + ")\"");
+end

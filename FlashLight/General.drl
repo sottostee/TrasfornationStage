@@ -1,0 +1,110 @@
+declare Initialization extends Event
+	@role(event)
+end
+
+declare PwrFail extends Event
+	@role(event)
+end
+
+declare PwrRstr extends Event
+	@role(event)
+end
+
+declare TurnOff extends Event
+	@role(event)
+end
+
+declare TurnOn extends Event
+	@role(event)
+end
+
+declareLightsOnextends Fluent
+ end
+query lightsOn( LightsOn $f )
+	$f := LightsOn()
+end
+
+declarePwrAvailextends Fluent
+ end
+query pwrAvail( PwrAvail $f )
+	$f := PwrAvail()
+end
+
+declareSwitchOnextends Fluent
+ end
+query switchOn( SwitchOn $f )
+	$f := SwitchOn()
+end
+
+rule "PwrFail---> Sample(PwrAvail)"
+when
+	$e: PwrFail( $s: start, $v: value)
+	$f : PwrAvail()
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "PwrFail---> Sample(LightsOn)"
+when
+	$e: PwrFail( $s: start, $v: value)
+	$f : LightsOn()
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "PwrRstr---> Sample(LightsOn)"
+when
+	$e: PwrRstr( $s: start, $v: value)
+	$f : LightsOn()
+
+	$ff: SwitchOn()
+	MVI( fluent == $ff, start<=$s, (start+length)>=$s, value!=0 )
+
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "PwrRstr---> Sample(PwrAvail)"
+when
+	$e: PwrRstr( $s: start, $v: value)
+	$f : PwrAvail()
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "TurnOff---> Sample(LightsOn)"
+when
+	$e: TurnOff( $s: start, $v: value)
+	$f : LightsOn()
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "TurnOff---> Sample(SwitchOn)"
+when
+	$e: TurnOff( $s: start, $v: value)
+	$f : SwitchOn()
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "TurnOn---> Sample(LightsOn)"
+when
+	$e: TurnOn( $s: start, $v: value)
+	$f : LightsOn()
+
+	$ff: PwrAvail()
+	MVI( fluent == $ff, start<=$s, (start+length)>=$s, value!=0 )
+
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
+rule "TurnOn---> Sample(SwitchOn)"
+when
+	$e: TurnOn( $s: start, $v: value)
+	$f : SwitchOn()
+then
+	insert( new Sample($e, $f, $v, $s)
+end
+
